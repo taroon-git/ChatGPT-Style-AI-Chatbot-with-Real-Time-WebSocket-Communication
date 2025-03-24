@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STT & TTS Chatbot</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            margin: 0;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #1e1e2f;
+            color: white;
+            padding: 15px;
+            font-family: Arial, sans-serif;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px solid #fff;
+            padding-bottom: 5px;
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .sidebar li {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #292942;
+            border-radius: 8px;
+            transition: 0.3s;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .sidebar li:hover {
+            background-color: #3a3a5c;
+        }
+
+        .sidebar a {
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            display: block;
+        }
+
+        .session-id {
+            font-size: 12px;
+            color: #a0a0b8;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            width: 500px;
+            height: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            margin: auto;
+        }
+
+        /* Messages */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Chat Messages */
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+            text-align: right;
+            border-bottom-right-radius: 0;
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 75%;
+            word-wrap: break-word;
+            margin-right: 10px;
+        }
+
+        .bot-message {
+            background-color: #f1f1f1;
+            color: black;
+            text-align: left;
+            border-bottom-left-radius: 0;
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 75%;
+            word-wrap: break-word;
+            align-self: flex-start;
+            margin-left: 10px;
+        }
+
+        /* Input Area */
+        .input-container {
+            display: flex;
+            align-items: center;
+            border: 1px solid #ddd;
+            border-radius: 30px;
+            overflow: hidden;
+            padding: 5px;
+            background: white;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+        }
+
+        button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 20px;
+        }
+
+        /* Button Colors */
+        .mic-btn {
+            color: #28a745;
+        }
+
+        .listen-btn {
+            color: #ff9800;
+        }
+
+        .upload-btn {
+            color: #007bff;
+        }
+
+        .send-btn {
+            color: #007bff;
+        }
+
+        /* Audio */
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+
+        .new-chat-btn {
+            background: linear-gradient(135deg, #412ee8, #1209c3);
+            /* Gradient color */
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 25px;
+            /* Rounded button */
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 2px 4px 10px rgba(255, 117, 140, 0.3);
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .new-chat-btn:hover {
+            background: linear-gradient(135deg, #ff758c, #ff7eb3);
+            transform: scale(1.05);
+            /* Slight zoom effect */
+            box-shadow: 4px 6px 15px rgba(255, 117, 140, 0.5);
+        }
+
+        .new-chat-btn:active {
+            transform: scale(0.95);
+            /* Click effect */
+        }
+
+        .delete-btn {
+            margin-left: 10px;
+            font-size: 18px;
+            /* Make emoji bigger */
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .delete-btn:hover {
+            transform: scale(1.2);
+            /* Slight zoom effect on hover */
+        }
+
+
+        .share-btn {
+            margin-left: 10px;
+            font-size: 18px;
+            /* Make emoji bigger */
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .share-btn:hover {
+            transform: scale(1.2);
+            /* Slight zoom effect on hover */
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="sidebar">
+        <h2>Chat Sessions</h2>
+        <button onclick="createNewChat()" class="new-chat-btn">➕ New Chat</button>
+        <ul id="session-list"></ul> <!-- Sessions will be loaded dynamically -->
+    </div>
+
+
+    <div class="chat-container">
+        <div class="messages" id="messages"></div>
+        <div class="input-container">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">➕</button>
+            <input type="file" id="fileInput" style="display: none;" accept=".pdf" onchange="uploadPDF()">
+            <input type="text" id="chatInput" placeholder="Type a message or speak...">
+            <button class="audio-btn" onclick="toggleAudio()" id="audioButton">🎤</button>
+            <!-- Single button for audio -->
+            <button class="send-btn" onclick="sendMessage()">📩</button>
+        </div>
+        <audio id="audioPlayer" controls style="display: none;"></audio>
+    </div>
+
+    <script>
+
+        let ws;
+        let isRecording = false;
+        let recognition;
+        let lastBotMessage = "";
+
+        function connectWebSocket() {
+            ws = new WebSocket("ws://localhost:8000/ws");
+
+            ws.onopen = () => console.log("✅ WebSocket Connected");
+
+            ws.onclose = (event) => {
+                console.warn("❌ WebSocket Disconnected. Reconnecting in 2 seconds...");
+                setTimeout(connectWebSocket, 2000);
+            };
+
+            ws.onmessage = function (event) {
+                let messages = document.getElementById("messages");
+                let message = document.createElement("div");
+
+                let botResponse = event.data.replace("🤖 Bot Response: ", "").trim();
+
+                if (botResponse !== lastBotMessage) {
+                    message.textContent = "Bot: " + botResponse;
+                    messages.appendChild(message);
+                    messages.scrollTop = messages.scrollHeight;
+                    lastBotMessage = botResponse;
+
+                    // Enable TTS playback after receiving response
+                    document.getElementById("audioButton").textContent = "🔊";
+                }
+            };
+        }
+
+        connectWebSocket();
+
+        function sendMessage() {
+            let input = document.getElementById("chatInput");
+            let text = input.value.trim();
+            if (text !== "") {
+                let messages = document.getElementById("messages");
+                let message = document.createElement("div");
+                message.classList.add("user-message");
+
+                message.textContent = "You: " + text;
+                messages.appendChild(message);
+                messages.scrollTop = messages.scrollHeight;
+                ws.send(text);
+                input.value = "";
+            }
+        }
+
+        function toggleAudio() {
+            let audioButton = document.getElementById("audioButton");
+
+            if (!isRecording) {
+                // Start recording
+                console.log("🎤 Starting recording...");
+                isRecording = true;
+                audioButton.textContent = "⏹"; // Change to stop icon
+
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.lang = "en-US";
+                recognition.start();
+
+                recognition.onresult = function (event) {
+                    let text = event.results[0][0].transcript;
+                    document.getElementById("chatInput").value = text;
+                    sendMessage();
+                };
+
+                recognition.onend = function () {
+                    console.log("🛑 Recording stopped.");
+                    isRecording = false;
+                    audioButton.textContent = "🔊"; // Change to play button
+                };
+            } else {
+                // Play bot response (TTS)
+                console.log("🔊 Playing TTS...");
+                isRecording = false;
+                audioButton.textContent = "🎤"; // Reset to mic icon
+
+                if (!lastBotMessage) {
+                    console.error("❌ No bot response to play.");
+                    return;
+                }
+
+                fetch("http://127.0.0.1:8000/tts/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: lastBotMessage })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        let audioUrl = URL.createObjectURL(blob);
+                        let audioPlayer = document.getElementById("audioPlayer");
+                        console.log("🎵 Playing generated speech...");
+                        audioPlayer.src = audioUrl;
+                        audioPlayer.style.display = "block";
+                        audioPlayer.play();
+                    })
+                    .catch(error => console.error("❌ Error:", error));
+            }
+        }
+
+        function uploadPDF() {
+            let fileInput = document.getElementById("fileInput");
+            let file = fileInput.files[0];
+            if (!file) return;
+            let formData = new FormData();
+            formData.append("file", file);
+            fetch("http://127.0.0.1:8000/upload/", {
+                method: "POST",
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => alert("📄 PDF uploaded & processed successfully!"))
+                .catch(error => console.error("❌ Upload Error:", error));
+        }
+
+        // creating New Sessions
+        async function createNewChat() {
+            try {
+                let response = await fetch("http://127.0.0.1:8000/new-session", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                let data = await response.json();
+
+                if (response.ok) {
+                    alert("✅ New chat session created!");
+
+                    // Clear chat history UI
+                    document.getElementById("messages").innerHTML = "";
+
+                    // Reload session list
+                    loadSessions();
+                } else {
+                    console.error("❌ Error creating new session:", data);
+                }
+            } catch (error) {
+                console.error("❌ Error:", error);
+            }
+        }
+
+
+        async function loadSessions() {
+            try {
+                let response = await fetch("http://127.0.0.1:8000/sessions");
+                let data = await response.json();
+
+                let sessionList = document.getElementById("session-list");
+                sessionList.innerHTML = ""; // Clear previous list
+
+                if (data.sessions.length === 0) {
+                    sessionList.innerHTML = "<li>No sessions found</li>";
+                } else {
+                    for (let session of data.sessions) {
+                        let sessionId = session;
+
+                        // Fetch first message for session name
+                        let chatResponse = await fetch(`http://127.0.0.1:8000/chat-history?session_id=${sessionId}`);
+                        let chatData = await chatResponse.json();
+
+                        let firstMessage = "New Chat";
+                        if (chatData.messages.length > 0) {
+                            let firstUserMessage = chatData.messages.find(msg => msg.role === "user");
+                            if (firstUserMessage) {
+                                firstMessage = firstUserMessage.message.substring(0, 3) + "...";
+                            }
+                        }
+
+                        // Create list item
+                        let listItem = document.createElement("li");
+
+                        // Create session link
+                        let link = document.createElement("a");
+                        link.href = `#`;
+                        link.innerHTML = firstMessage;
+                        link.onclick = () => loadChatHistory(sessionId);
+
+                        // Create delete button (🗑️)
+                        let deleteBtn = document.createElement("span");
+                        deleteBtn.innerHTML = "🗑️";
+                        deleteBtn.classList.add("delete-btn");
+                        deleteBtn.onclick = () => deleteSession(sessionId);
+
+                        // Create share button (📤)
+                        let shareBtn = document.createElement("span");
+                        shareBtn.innerHTML = "📤";  // Share icon
+                        shareBtn.classList.add("share-btn");
+                        shareBtn.addEventListener("click", function (event) {
+                            event.stopPropagation();  // Prevents unwanted side effects
+                            copySessionLink(sessionId);
+                        });
+
+                        listItem.appendChild(link);
+                        listItem.appendChild(shareBtn);
+                        listItem.appendChild(deleteBtn);
+                        sessionList.appendChild(listItem);
+                    }
+                }
+            } catch (error) {
+                console.error("❌ Error fetching sessions:", error);
+            }
+        }
+
+        function copySessionLink(sessionId) {
+    let chatLink = `${window.location.origin}?session_id=${sessionId}`; // Updated link format
+    console.log("📤 Copying link:", chatLink);
+
+    navigator.clipboard.writeText(chatLink)
+        .then(() => alert("🔗 Chat link copied!"))
+        .catch(err => console.error("❌ Failed to copy:", err));
+}
+
+
+
+        // Function to delete session
+        async function deleteSession(sessionId) {
+            if (!confirm("Are you sure you want to delete this session?")) return;
+
+            try {
+                let response = await fetch(`http://127.0.0.1:8000/delete-session/${sessionId}`, {
+                    method: "DELETE"
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+
+                alert("✅ Session deleted successfully!");
+                loadSessions(); // Refresh the session list after deletion
+
+            } catch (error) {
+                console.error("❌ Error deleting session:", error);
+            }
+        }
+
+        async function loadChatHistory(sessionId) {
+            try {
+                let response = await fetch(`http://127.0.0.1:8000/chat-history?session_id=${sessionId}`);
+                let data = await response.json();
+
+                let messagesDiv = document.getElementById("messages");
+                messagesDiv.innerHTML = "";
+
+                if (data.messages.length === 0) {
+                    messagesDiv.innerHTML = "<p>No messages found for this session.</p>";
+                } else {
+                    data.messages.forEach(msg => {
+                        let message = document.createElement("div");
+                        message.classList.add(msg.role === "user" ? "user-message" : "bot-message");
+                        message.textContent = `${msg.role === "user" ? "You" : "Bot"}: ${msg.message}`;
+                        messagesDiv.appendChild(message);
+                    });
+                }
+            } catch (error) {
+                console.error("❌ Error fetching chat history:", error);
+            }
+        }
+
+        window.onload = function () {
+    let urlParams = new URLSearchParams(window.location.search);
+    let sessionId = urlParams.get("session_id");
+
+    if (sessionId) {
+        console.log("🔄 Loading shared session:", sessionId);
+        loadChatHistory(sessionId);
+    } else {
+        loadSessions();
+    }
+};
+
+
+    </script>
+</body>
+
+</html>
